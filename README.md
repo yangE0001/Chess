@@ -18,4 +18,4 @@
 
 ## 저장소 구성
 
-저장소 최상위에 manifest.json, index.js, style.css, board.html 및 FONT-LICENSE.txt를 함께 둡니다. 빌드 과정 없이 설치됩니다. 기물 윤곽선의 원본은 DejaVu Sans이며 라이선스는 FONT-LICENSE.txt에 포함되어 있습니다.
+저장소 최상위에 manifest.json, index.js, style.css, board.js 및 FONT-LICENSE.txt를 함께 둡니다. 빌드 과정 없이 설치됩니다. 기물 윤곽선의 원본은 DejaVu Sans이며 라이선스는 FONT-LICENSE.txt에 포함되어 있습니다.

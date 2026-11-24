@@ -1,4 +1,4 @@
-const page = new URL('./board.html', import.meta.url);
+const boardModule = new URL('./board.js?v=0.2.2', import.meta.url);
 const key = 'tavernChessV1';
 const context = () => SillyTavern.getContext();
 const launch = document.createElement('button');
@@ -11,13 +11,15 @@ menuLaunch.id = 'tavernChessMenuLaunch';
 menuLaunch.type = 'button';
 menuLaunch.className = 'list-group-item flex-container flexGap5 interactable';
 menuLaunch.innerHTML = '<span class="fa-solid fa-chess-knight extensionsMenuExtensionButton" aria-hidden="true"></span><span>태번 체스</span>';
-menuLaunch.onclick = () => launch.click();
+menuLaunch.onclick = openBoard;
 
 function mountMenu() {
     const menu = document.getElementById('extensionsMenu');
     if (menu && menuLaunch.parentElement !== menu) menu.append(menuLaunch);
 }
 let frame;
+let cleanup;
+let activeChat;
 let deleting = false;
 const settings = context().extensionSettings.tavernChess ??= { enabled: true, profile: '' };
 const manager = document.createElement('details');
@@ -90,16 +92,19 @@ erase.onclick = async () => {
     }
 };
 function chatKey(ctx) {
-    const chat = ctx.getCurrentChatId?.() ?? ctx.chatId;
+    const group = ctx.groups?.find(g => String(g.id) === String(ctx.groupId));
+    const chat = ctx.getCurrentChatId?.() || ctx.chatId || group?.chat_id || ctx.characters?.[ctx.characterId]?.chat;
     return chat ? JSON.stringify([ctx.groupId ?? null,ctx.characterId ?? null,chat]) : null;
 }
 function dismiss() {
+    cleanup?.();
+    cleanup = null;
     frame?.remove();
     frame = null;
 
 }
 function sync() {
-    dismiss();
+    if (settings.enabled === false || deleting || activeChat !== chatKey(context())) dismiss();
     result.textContent = '';
     updateControls();
 }
@@ -108,17 +113,25 @@ function updateControls() {
     launch.hidden = settings.enabled === false || !chatKey(ctx);
     launch.disabled = deleting;
     menuLaunch.hidden = settings.enabled === false;
-    menuLaunch.disabled = deleting || !chatKey(ctx);
+    menuLaunch.disabled = deleting;
     erase.disabled = deleting || !chatKey(ctx) || !ctx.chatMetadata?.[key];
 }
-launch.onclick = () => {
+function report(text) {
+    if (globalThis.toastr) globalThis.toastr.warning(text);
+    else window.alert(text);
+}
+launch.onclick = openBoard;
+async function openBoard() {
     const id = chatKey(context());
-    if (!id || frame || deleting || settings.enabled === false) return;
-    const panel = document.createElement('iframe');
+    if (!id) return report('체스를 연결할 채팅을 먼저 열어 주세요.');
+    if (frame || deleting || settings.enabled === false) return;
+    activeChat = id;
+    const panel = document.createElement('dialog');
+    panel.setAttribute('aria-label','태번 체스');
+    panel.addEventListener('cancel',event => { event.preventDefault(); dismiss(); });
     panel.title = '태번 체스';
     panel.id = 'tavernChessFrame';
-    panel.src = page.href;
-    panel.chessSession = {
+    const session = {
         character: context().name2 || '상대',
         player: context().name1 || '나',
         read: () => structuredClone(context().chatMetadata[key]),
@@ -150,12 +163,27 @@ launch.onclick = () => {
             ctx.chatMetadata[key] = structuredClone(data);
             updateControls();
             try { await ctx.saveMetadata(); }
-            catch { if (panel === frame) panel.contentDocument.getElementById('notice').textContent = '대국 저장 실패 · 연결을 확인하세요.'; }
+            catch { if (panel === frame) report('대국 저장 실패 · 연결을 확인하세요.'); }
         }
     };
     frame = panel;
     document.body.append(panel);
-};
+    try {
+        panel.textContent = '체스판을 여는 중…';
+        panel.showModal();
+        // A dialog cannot host a shadow root directly.
+        const host = document.createElement('div');
+        const { mountBoard } = await import(boardModule.href);
+        if (frame !== panel) return;
+        panel.replaceChildren(host);
+        cleanup = mountBoard(host,session);
+    } catch (error) {
+        if (panel !== frame) return;
+        dismiss();
+        console.error('[태번 체스]',error);
+        report('체스판을 열지 못했어요. ' + error.message);
+    }
+}
 context().eventSource.on(context().eventTypes.APP_READY,mountSettings);
 context().eventSource.on(context().eventTypes.CHAT_CHANGED,sync);
 sync();

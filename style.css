@@ -9,3 +9,6 @@
 #tavernChessMenuLaunch{width:100%;font:inherit;color:inherit;background:transparent;border:0;text-align:start;cursor:pointer}
 #tavernChessMenuLaunch[hidden]{display:none}
 #tavernChessMenuLaunch:disabled{opacity:.5}
+
+#tavernChessFrame{margin:0;padding:0;max-width:none;max-height:none;overflow:auto;box-sizing:border-box}
+#tavernChessFrame>div{display:block;min-height:100%}
