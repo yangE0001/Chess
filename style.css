@@ -5,3 +5,7 @@
 #tavernChessSettings label{display:block;margin:9px 0}
 #tavernChessSettings .erase{width:auto}
 #tavernChessLaunch[hidden]{display:none}
+
+#tavernChessMenuLaunch{width:100%;font:inherit;color:inherit;background:transparent;border:0;text-align:start;cursor:pointer}
+#tavernChessMenuLaunch[hidden]{display:none}
+#tavernChessMenuLaunch:disabled{opacity:.5}

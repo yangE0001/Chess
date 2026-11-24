@@ -6,6 +6,17 @@ launch.id = 'tavernChessLaunch';
 launch.type = 'button';
 launch.textContent = '♞ 체스';
 document.body.append(launch);
+const menuLaunch = document.createElement('button');
+menuLaunch.id = 'tavernChessMenuLaunch';
+menuLaunch.type = 'button';
+menuLaunch.className = 'list-group-item flex-container flexGap5 interactable';
+menuLaunch.innerHTML = '<span class="fa-solid fa-chess-knight extensionsMenuExtensionButton" aria-hidden="true"></span><span>태번 체스</span>';
+menuLaunch.onclick = () => launch.click();
+
+function mountMenu() {
+    const menu = document.getElementById('extensionsMenu');
+    if (menu && menuLaunch.parentElement !== menu) menu.append(menuLaunch);
+}
 let frame;
 let deleting = false;
 const settings = context().extensionSettings.tavernChess ??= { enabled: true, profile: '' };
@@ -38,6 +49,7 @@ function refreshProfiles() {
     profiles.value = settings.profile || '';
 }
 function mountSettings() {
+    mountMenu();
     const container = document.getElementById('extensions_settings');
     if (container && !manager.isConnected) container.append(manager);
     enabled.checked = settings.enabled !== false;
@@ -95,6 +107,8 @@ function updateControls() {
     const ctx = context();
     launch.hidden = settings.enabled === false || !chatKey(ctx);
     launch.disabled = deleting;
+    menuLaunch.hidden = settings.enabled === false;
+    menuLaunch.disabled = deleting || !chatKey(ctx);
     erase.disabled = deleting || !chatKey(ctx) || !ctx.chatMetadata?.[key];
 }
 launch.onclick = () => {
