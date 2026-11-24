@@ -1,4 +1,4 @@
-const boardModule = new URL('./board.js?v=0.4.1', import.meta.url);
+const boardModule = new URL('./board.js?v=0.5.1', import.meta.url);
 const key = 'tavernChessV1';
 const context = () => SillyTavern.getContext();
 const launch = document.createElement('button');
@@ -19,6 +19,36 @@ function mountMenu() {
 }
 let frame;
 let cleanup;
+let soundContext, tapBuffer;
+function unlockSound(){
+    try{
+        const Audio=window.AudioContext || window.webkitAudioContext;
+        if(!Audio)return;
+        soundContext ??= new Audio();
+        if(soundContext.state!=='running')soundContext.resume().catch(()=>{});
+    }catch{ /* Audio can be unavailable in a muted browser. */ }
+}
+function tap(){
+    const ctx=soundContext;
+    if(ctx?.state!=='running')return;
+    if(!tapBuffer){
+        const rate=ctx.sampleRate;
+        tapBuffer=ctx.createBuffer(1,Math.ceil(rate*0.065),rate);
+        const wave=tapBuffer.getChannelData(0);
+        for(let i=0;i<wave.length;i++){
+            const t=i/rate, attack=Math.min(1,t/0.001);
+            const noise=(Math.random()*2-1)*0.23*Math.exp(-t*740);
+            const wood=Math.sin(2*Math.PI*820*t)*0.21*Math.exp(-t*120)
+                +Math.sin(2*Math.PI*1640*t)*0.09*Math.exp(-t*210);
+            wave[i]=attack*(noise+wood);
+        }
+    }
+    const hit=ctx.createBufferSource();
+    hit.buffer=tapBuffer;
+    hit.connect(ctx.destination);
+    hit.onended=()=>hit.disconnect();
+    hit.start();
+}
 let activeChat;
 let deleting = false;
 const settings = context().extensionSettings.tavernChess ??= { enabled: true, profile: 'current' };
@@ -97,6 +127,8 @@ function chatKey(ctx) {
     return chat ? JSON.stringify([ctx.groupId ?? null,ctx.characterId ?? null,chat]) : null;
 }
 function dismiss() {
+    soundContext?.close().catch(()=>{});
+    soundContext=tapBuffer=null;
     cleanup?.();
     cleanup = null;
     frame?.remove();
@@ -131,7 +163,9 @@ async function openBoard() {
     panel.addEventListener('cancel',event => { event.preventDefault(); dismiss(); });
     panel.title = '태번 체스';
     panel.id = 'tavernChessFrame';
+    unlockSound();
     const session = {
+        tap,unlockSound,
         character: context().name2 || '상대',
         player: context().name1 || '나',
         read: () => structuredClone(context().chatMetadata[key]),
