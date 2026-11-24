@@ -1,4 +1,4 @@
-const boardModule = new URL('./board.js?v=0.2.2', import.meta.url);
+const boardModule = new URL('./board.js?v=0.3.0', import.meta.url);
 const key = 'tavernChessV1';
 const context = () => SillyTavern.getContext();
 const launch = document.createElement('button');
@@ -21,7 +21,7 @@ let frame;
 let cleanup;
 let activeChat;
 let deleting = false;
-const settings = context().extensionSettings.tavernChess ??= { enabled: true, profile: '' };
+const settings = context().extensionSettings.tavernChess ??= { enabled: true, profile: 'current' };
 const manager = document.createElement('details');
 manager.id = 'tavernChessSettings';
 manager.innerHTML = `<summary>♞ 태번 체스</summary>
@@ -43,7 +43,7 @@ function listProfiles() {
     return Array.isArray(available) ? available.filter(p => p?.id && p.name) : [];
 }
 function refreshProfiles() {
-    profiles.replaceChildren(new Option('예시 대사 (API 사용 안 함)', ''));
+    profiles.replaceChildren(new Option('현재 채팅 연결', 'current'),new Option('로컬 코칭 (API 사용 안 함)', ''));
     for (const p of listProfiles()) profiles.add(new Option(p.name, p.id));
     if (settings.profile && !Array.from(profiles.options).some(o => o.value === settings.profile)) {
         profiles.add(new Option('사용할 수 없는 프로필', settings.profile));
@@ -137,23 +137,32 @@ async function openBoard() {
         read: () => structuredClone(context().chatMetadata[key]),
         close: dismiss,
         get profile() { return settings.profile; },
-        async reply(history, position) {
+        async reply(history, position, cue='') {
             const ctx = context();
             const profile = settings.profile;
-            if (panel !== frame || chatKey(ctx) !== id || !listProfiles().some(p => p.id === profile)) {
+            if (panel !== frame || chatKey(ctx) !== id || (profile!=='current' && !listProfiles().some(p => p.id === profile))) {
                 throw new Error('profile unavailable');
             }
             const character = ctx.characters?.[ctx.characterId];
             const messages = [{role:'system',content:[
                 '한국어로 짧게 답하는 체스 대국 상대입니다.',
-                ctx.name2,character?.description,character?.personality,
+                '캐릭터 카드와 최근 장면의 말투와 관계를 유지하세요. 기물 이동은 확장이 담당합니다. 제공된 사실만 설명하고 평가점수나 강제 수순을 만들지 마세요.',
+                ctx.name2,character?.description,character?.personality,character?.scenario,character?.data?.mes_example?.slice(0,900),
+                '최근 채팅 장면: '+JSON.stringify((ctx.chat||[]).filter(m=>!m.is_system).slice(-6).map(m=>[m.name,String(m.mes||'').slice(0,500)])),
+                position.hints?'복기 또는 힌트 허용.':'힌트 OFF. 수다와 규칙 설명은 허용. 현재 판 조언이나 유불리 질문은 캐릭터답게 거절하세요.',
                 '현재 기물 위치: ' + JSON.stringify(position),
             ].filter(Boolean).join('\n')}];
             for (const [speaker,content] of history.slice(-20)) {
                 messages.push({role:speaker === '유니' ? 'user' : 'assistant',content});
             }
+            if(cue)messages.push({role:'user',content:'다음 확인된 상황을 캐릭터의 짧은 대사로 표현하세요: '+cue});
+            if(profile==='current'){
+                const output=await ctx.generateQuietPrompt({quietPrompt:JSON.stringify(messages),quietToLoud:false});
+                if(!output?.trim())throw new Error('empty reply');
+                return output.trim();
+            }
             const response = await ctx.ConnectionManagerRequestService.sendRequest(profile,messages,300);
-            const text = typeof response === 'string' ? response : response?.content ?? response?.choices?.[0]?.message?.content;
+            const text = typeof response === 'string' ? response : response?.content ?? response?.choices?.[0]?.message?.content ?? response?.choices?.[0]?.text;
             if (typeof text !== 'string' || !text.trim()) throw new Error('empty reply');
             return text.trim();
         },
