@@ -16,7 +16,7 @@ export function initialGame() {
   for (let i=0;i<8;i++) for (const [rank,piece] of [[1,'w'+back[i]],[2,'wp'],[7,'bp'],[8,'b'+back[i]]]) board[files[i]+rank]=piece;
   return {board,turn:'w',rights:'KQkq',ep:'',half:0};
 }
-function reaches(g,from,to) {
+export function reaches(g,from,to) {
   if(from===to)return false;
   const [color,p]=g.board[from],dx=files.indexOf(to[0])-files.indexOf(from[0]),dy=to[1]-from[1];
   const x=Math.abs(dx),y=Math.abs(dy);

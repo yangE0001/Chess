@@ -1,4 +1,6 @@
-import {initialGame,legal,advance,notation,identity,outcome,choose,describe,check,learnings} from './rules.js';
+import {analyze} from './engine.js';
+import {recognize,definition} from './coaching.js';
+import {initialGame,legal,advance,notation,identity,outcome,describe,check,learnings} from './rules.js';
 const layout = "<style>\n:host{color-scheme:light;--bg:#f5f2eb;--panel:#fffdf8;--ink:#252520;--muted:#67645a;--line:#dfdacf;--tone:#ede7d9;--accent:#f1c85b;--deep:#594013;--light:#eee2ca;--dark:#ad997c;--mark:#ffdd73;--white:#fff9e9;--black:#34312b}\n:host[data-theme=\"honey\"]{--bg:#f8efdb;--panel:#fffbf0;--ink:#31261b;--muted:#725d45;--line:#e7d7b6;--tone:#f3e2b8;--accent:#f0be46;--deep:#533606;--light:#fae7b1;--dark:#c18e4f;--mark:#fff18e}\n:host[data-theme=\"night\"]{color-scheme:dark;--bg:#211f1b;--panel:#2b2924;--ink:#f9f3e4;--muted:#c0b8a5;--line:#4a4439;--tone:#3a352c;--accent:#ebc467;--deep:#30220d;--light:#d0c0a3;--dark:#73634e;--mark:#efd081}\n*{box-sizing:border-box}\n:host{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,\"Malgun Gothic\",sans-serif}\nbutton,input,select{font:inherit;color:inherit}\nbutton{cursor:pointer}\nbutton:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #bd801d;outline-offset:2px}\nbutton:disabled{opacity:.45;cursor:default}\n[hidden]{display:none!important}\n.shell{max-width:1060px;margin:0 auto;padding:0 28px 28px}\nheader{height:76px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px}\n.brand,.actions,.tabs,.person,.buttons,.stepper,.compose,.section-head,.choice-row{display:flex;align-items:center;gap:8px}\n.brand{gap:11px}.brand b{font-size:17px;letter-spacing:-.035em}.brand-icon{display:grid;place-items:center;width:35px;height:35px;border-radius:10px;background:var(--accent);color:#30220d;font:26px Georgia,serif}\n.button,.tab,.pick,.stepper button{border:1px solid var(--line);background:var(--panel);border-radius:9px;padding:8px 12px;font-weight:650;min-height:38px}\n.button:hover,.tab:hover,.pick:hover,.stepper button:hover{filter:brightness(.95)}\n.quiet{background:transparent}.primary{background:var(--accent);border-color:transparent;color:#30220d}\nmain{padding-top:25px}\n.tabs{margin-bottom:20px;display:inline-flex;background:var(--tone);padding:4px;border-radius:11px;gap:3px}\n.tab{border-color:transparent;background:transparent;color:var(--muted);min-width:94px;min-height:35px;padding:5px 13px}\n.tab[aria-pressed=\"true\"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 3px #23170015}\n.layout{display:grid;grid-template-columns:minmax(0,540px) minmax(0,1fr);gap:29px;align-items:start}\n.match,.sidebar{min-width:0}.match{display:grid;gap:10px}\n.player{display:grid;gap:9px;min-width:0}\n.person{gap:10px;min-height:42px}\n.identity{display:grid;line-height:1.2;gap:4px}.identity small,.muted,.meta{color:var(--muted);font-size:12px}\n.avatar{flex:none;display:grid;place-items:center;width:38px;height:38px;border-radius:50%;font-weight:700}\n.avatar.op{background:#343128;color:#f8da8a;border:1px solid #574a32;font:italic 22px Georgia,serif}\n.avatar.me{background:var(--tone);font-size:13px}\n.clock{margin-left:auto;font:700 16px ui-monospace,monospace;padding:6px 9px;border-radius:7px;background:var(--tone);white-space:nowrap}\n.clock.active{background:var(--accent);color:#30220d}\n.turn{margin-left:auto;font-size:12px;color:var(--muted);white-space:nowrap}\n.chat-expand{margin-left:auto;white-space:nowrap;font-size:12px}\n.clock+.chat-expand{margin-left:0}\n.clock[hidden]+.chat-expand{margin-left:auto}\n.compact-chat{border:1px solid var(--line);background:var(--panel);border-radius:11px;overflow:hidden}\n.compact-chat .log{height:92px;padding:8px 10px;gap:5px;font-size:13px;line-height:1.4}\n.compact-chat .log li{display:flex;align-items:baseline;gap:6px;padding:5px 8px}\n.compact-chat .log small{flex:none;margin:0}\n.board-wrap{position:relative;isolation:isolate;overflow:hidden;border-radius:9px;box-shadow:0 1px 0 #30220d38}\n.board{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));grid-template-rows:repeat(8,minmax(0,1fr));aspect-ratio:1;background:var(--light)}\n.square{position:relative;display:grid;place-items:center;min-width:0;min-height:0;padding:0;border:0;border-radius:0;background:var(--light);color:#594933;line-height:1;touch-action:manipulation}\n.square.dark{background:var(--dark);color:#29231b}\n.square.last{box-shadow:inset 0 0 0 100px color-mix(in srgb,var(--mark) 57%,transparent)}\n.square.selected{box-shadow:inset 0 0 0 3px #7b4516;background:var(--mark)}\n.square:focus-visible{outline-offset:-3px;z-index:2}\n.square canvas{width:96%;height:96%;pointer-events:none}\n.coord{font-size:clamp(9px,1.1vw,12px);font-weight:750;position:absolute;pointer-events:none}.coord.rank{left:4px;top:4px}.coord.file{bottom:3px;right:4px}\n.dot::after{content:\"\";display:block;position:absolute;width:24%;aspect-ratio:1;border-radius:50%;background:#68491880}\n#arrows{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3}\n.tools{display:flex;gap:7px;flex-wrap:wrap}\n.sidebar{display:grid;gap:12px}\n.card{background:var(--panel);border:1px solid var(--line);border-radius:13px;overflow:hidden}\n.section-head{padding:13px 14px;justify-content:space-between;border-bottom:1px solid var(--line)}\nh2,h3,p{margin:0}h2{font-size:14px}h3{font-size:14px}\n.status{font-size:12px;padding:4px 7px;border-radius:6px;background:var(--tone);color:var(--muted);white-space:nowrap}\n.log{list-style:none;margin:0;padding:13px 14px;display:grid;align-content:start;gap:10px;height:225px;overflow:auto;overscroll-behavior:contain}\n.log li{width:fit-content;max-width:92%;background:var(--tone);padding:8px 11px;border-radius:9px;overflow-wrap:anywhere}\n.log li.me-msg{justify-self:end;background:var(--accent);color:#30220d}\n.log small{display:block;color:inherit;opacity:.8;margin-bottom:3px;font-size:11px;font-weight:700}\n.compose{border:1px solid var(--line);background:var(--panel);border-radius:11px;padding:7px;gap:6px}\n.compose input{min-width:0;flex:1;border:0;background:transparent;padding:7px 5px;font-size:16px}\n.compose .button{flex:none}\n.moves{display:grid;gap:4px;padding:7px 12px 9px}\n.move-row{display:grid;grid-template-columns:33px 1fr 1fr;align-items:center;gap:6px}\n.move-row span{padding-left:5px;color:var(--muted);font:12px ui-monospace,monospace}\n.move-row button{border:0;text-align:left;border-radius:5px;background:none;padding:5px 8px;font:650 13px ui-monospace,monospace;cursor:default}\n.move-row button[aria-current=\"step\"]{background:var(--tone)}\n.move-row button:not(:disabled){cursor:pointer}\n.move-row button:disabled{opacity:1}\n.stepper{padding:0 11px 10px;justify-content:stretch;gap:5px}\n.stepper button{flex:1;min-width:0;padding:4px}\n.notice{font-size:12px;min-height:18px;color:var(--muted);margin:0 2px}\ndialog{background:var(--panel);color:var(--ink);border:1px solid var(--line);padding:0;width:min(450px,calc(100% - 26px));border-radius:16px;box-shadow:0 18px 64px #211a163d}\ndialog::backdrop{background:#211a1660}\n.chat-drawer{position:fixed;inset:12px 12px 12px auto;margin:0;width:min(420px,calc(100% - 24px));max-width:none;max-height:none}\n.chat-drawer[open]{display:grid;grid-template-rows:auto minmax(0,1fr)}\n.chat-drawer::backdrop{background:#211a162f}\n.chat-drawer .dialog-head .status{margin-left:auto;margin-right:8px}\n.chat-drawer .log{height:auto;padding:14px;align-content:start}\n.dialog-head{display:flex;justify-content:space-between;align-items:center;padding:14px 17px;border-bottom:1px solid var(--line)}\n.dialog-head h2{font-size:16px}\n.settings-form{display:grid;gap:17px;padding:16px 17px 18px}\nfieldset{border:0;padding:0;margin:0;min-width:0}\nlegend{font-weight:750;margin-bottom:7px;padding:0}\n.choice-row{gap:6px;align-items:stretch}\n.pick{min-width:0;flex:1;padding:7px 5px;text-align:center}\n.pick[aria-pressed=\"true\"]{border-color:#b18336;background:var(--tone)}\n.pick canvas{width:31px;height:31px;display:block;margin:auto}\n.swatch{width:28px;height:19px;display:inline-block;border-radius:4px;margin:auto auto 3px;background:linear-gradient(90deg,var(--a) 50%,var(--b) 50%)}\n.pick span.label{display:block}\n.switch{display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding-top:13px}\n.switch input{width:19px;height:19px;accent-color:#9a641b}\n.select{width:100%;padding:8px;border:1px solid var(--line);background:var(--panel);border-radius:8px}\n.launch{position:fixed;right:20px;bottom:20px;z-index:4}\n.lobby{max-width:460px;margin:14vh auto;padding:22px;text-align:center}.lobby p{margin:12px 0}\n@media(max-width:700px){\n.shell{max-width:520px;padding:0 12px 20px}\nheader{height:56px}.brand-icon{width:29px;height:29px;font-size:22px}.brand b{font-size:15px}.actions{gap:5px}.actions .button{padding:5px 8px;font-size:12px;min-height:35px}\nmain{padding-top:11px}.tabs{margin-bottom:10px}.tab{min-height:31px;font-size:13px}.layout{grid-template-columns:1fr;gap:8px}.match{gap:7px}.player{gap:5px}.person{min-height:34px}.avatar{width:31px;height:31px}.compact-chat .log{height:76px;padding:6px 8px}.chat-expand{padding:4px 7px;min-height:32px}.identity{gap:2px}.clock{padding:4px 7px;font-size:14px}\n.tools{gap:5px}.tools .button{min-height:32px;padding:4px 9px;font-size:12px}\n.sidebar{gap:9px}.chat-drawer{inset:auto 0 0;width:100%;height:75vh;height:75dvh;border-radius:16px 16px 0 0}\n.section-head{padding:8px 10px}.compose{padding:5px}.move-card .section-head{border-bottom:0}\n.move-card:not(.open) .moves,.move-card:not(.open) .stepper{display:none}\n}\n</style>\n<div class=\"shell\" id=\"app\">\n<header>\n<div class=\"brand\"><span class=\"brand-icon\" aria-hidden=\"true\">♞</span><b>태번 체스</b></div>\n<div class=\"actions\">\n<button class=\"button quiet\" id=\"minimize\" type=\"button\">접기</button>\n<button class=\"button quiet\" id=\"settingsButton\" type=\"button\">설정</button>\n<button class=\"button primary\" id=\"newButton\" type=\"button\">새 대국</button>\n</div>\n</header>\n<main>\n<nav class=\"tabs\" aria-label=\"대국 모드\">\n<button class=\"tab\" data-mode=\"free\" type=\"button\" aria-pressed=\"false\">자유대국</button>\n<button class=\"tab\" data-mode=\"coach\" type=\"button\" aria-pressed=\"true\">코칭</button>\n</nav>\n<div class=\"layout\">\n<section class=\"match\" aria-label=\"체스판\">\n<div class=\"player\">\n<div class=\"person\"><span class=\"avatar op\" aria-hidden=\"true\">R</span><div class=\"identity\"><strong>루퍼트</strong><small id=\"opSide\">흑 · 코치</small></div><span class=\"clock\" id=\"opClock\" hidden></span><button class=\"button quiet chat-expand\" id=\"chatToggle\" type=\"button\" aria-haspopup=\"dialog\" aria-controls=\"chatDialog\">큰 창으로 보기</button></div>\n<div class=\"compact-chat\"><ol class=\"log\" id=\"recentLog\" role=\"log\" aria-label=\"대국 대화\" tabindex=\"0\"></ol></div>\n</div>\n<div class=\"board-wrap\">\n<div class=\"board\" id=\"board\" role=\"group\" aria-label=\"체스판\"></div>\n<canvas id=\"arrows\" width=\"800\" height=\"800\" aria-hidden=\"true\"></canvas>\n</div>\n<div class=\"person\"><span class=\"avatar me\" aria-hidden=\"true\">나</span><div class=\"identity\"><strong>유니</strong><small id=\"mySide\">백</small></div><span class=\"turn\" id=\"turn\">내 차례</span><span class=\"clock\" id=\"myClock\" hidden></span></div>\n<form class=\"compose\" id=\"compose\">\n<input id=\"message\" aria-label=\"루퍼트에게 할 말\" placeholder=\"루퍼트에게 말 걸기…\" autocomplete=\"off\" maxlength=\"240\">\n<button class=\"button primary\" type=\"submit\">보내기</button>\n</form>\n<div class=\"tools\">\n<button class=\"button\" id=\"hint\" type=\"button\">힌트</button>\n<button class=\"button\" id=\"variation\">수 시험하기</button>\n<button class=\"button\" id=\"undo\" type=\"button\">↶ 되돌리기</button>\n<button class=\"button\" id=\"review\" type=\"button\" aria-pressed=\"false\">복기</button>\n</div>\n<p class=\"notice\" id=\"notice\" role=\"status\"></p>\n</section>\n<aside class=\"sidebar\">\n<section class=\"card move-card\" id=\"moveCard\" aria-label=\"기보\">\n<div class=\"section-head\"><h2>기보</h2><button class=\"button quiet\" id=\"movesToggle\" type=\"button\" aria-expanded=\"false\">기보 보기</button></div>\n<section id=\"reviewInfo\" hidden style=\"padding:10px 12px\"><label>복기할 판 <select id=\"record\" class=\"select\"></select></label><p id=\"summary\"></p><p id=\"annotation\"></p><button class=\"button\" id=\"playback\">▶ 자동 재생</button></section><div class=\"moves\" id=\"moves\"></div>\n<div class=\"stepper\">\n<button type=\"button\" data-step=\"first\" aria-label=\"첫 위치\">|‹</button>\n<button type=\"button\" data-step=\"prev\" aria-label=\"이전 수\">‹</button>\n<button type=\"button\" data-step=\"next\" aria-label=\"다음 수\">›</button>\n<button type=\"button\" data-step=\"last\" aria-label=\"마지막 수\">›|</button>\n</div>\n</section>\n</aside>\n</div>\n</main>\n</div>\n<div class=\"shell\" id=\"lobby\" hidden><div class=\"card lobby\"><h2>실리태번 채팅</h2><p class=\"muted\">대국창을 접었어요.</p></div><button class=\"button primary launch\" id=\"reopen\" type=\"button\">♞ 대국 열기</button></div>\n<dialog class=\"chat-drawer\" id=\"chatDialog\" aria-labelledby=\"chatTitle\">\n<div class=\"dialog-head\"><h2 id=\"chatTitle\">대국 대화</h2><span class=\"status\" id=\"chatStatus\">힌트 켜짐</span><form method=\"dialog\"><button class=\"button quiet\" type=\"submit\">닫기</button></form></div>\n<ol class=\"log\" id=\"log\" aria-label=\"전체 대화 내역\" tabindex=\"0\"></ol>\n</dialog>\n<dialog id=\"settingsDialog\" aria-labelledby=\"settingsTitle\">\n<div class=\"dialog-head\"><h2 id=\"settingsTitle\">화면 설정</h2><form method=\"dialog\"><button class=\"button quiet\" type=\"submit\">닫기</button></form></div>\n<div class=\"settings-form\">\n<fieldset><legend>테마</legend><div class=\"choice-row\">\n<button class=\"pick\" type=\"button\" data-theme-choice=\"ivory\"><i class=\"swatch\" style=\"--a:#eee2ca;--b:#ad997c\"></i><span class=\"label\">아이보리</span></button>\n<button class=\"pick\" type=\"button\" data-theme-choice=\"honey\"><i class=\"swatch\" style=\"--a:#fae7b1;--b:#c18e4f\"></i><span class=\"label\">허니</span></button>\n<button class=\"pick\" type=\"button\" data-theme-choice=\"night\"><i class=\"swatch\" style=\"--a:#d0c0a3;--b:#73634e\"></i><span class=\"label\">차콜</span></button>\n</div></fieldset>\n<fieldset><legend>기물 디자인</legend><div class=\"choice-row\">\n<button class=\"pick\" type=\"button\" data-piece-choice=\"classic\"><canvas width=\"96\" height=\"96\" aria-hidden=\"true\"></canvas><span class=\"label\">클래식</span></button>\n<button class=\"pick\" type=\"button\" data-piece-choice=\"simple\"><canvas width=\"96\" height=\"96\" aria-hidden=\"true\"></canvas><span class=\"label\">미니멀</span></button>\n<button class=\"pick\" type=\"button\" data-piece-choice=\"letter\"><canvas width=\"96\" height=\"96\" aria-hidden=\"true\"></canvas><span class=\"label\">영문 표기</span></button>\n</div></fieldset>\n<label class=\"switch\"><strong>대국 중 힌트</strong><input type=\"checkbox\" id=\"hintToggle\" checked></label>\n</div>\n</dialog>\n<dialog id=\"newDialog\" aria-labelledby=\"newTitle\">\n<div class=\"dialog-head\"><h2 id=\"newTitle\">새 대국</h2><form method=\"dialog\"><button class=\"button quiet\" type=\"submit\">닫기</button></form></div>\n<form id=\"start\" class=\"settings-form\">\n<label><strong>모드</strong><select class=\"select\" id=\"gameMode\"><option value=\"free\">자유대국</option><option value=\"coach\">코칭</option></select></label>\n<label><strong>내 기물 색</strong><select class=\"select\" id=\"gameSide\"><option value=\"w\">백</option><option value=\"b\">흑</option><option value=\"random\">랜덤</option></select></label>\n<label id=\"timerField\"><strong>타이머</strong><select class=\"select\" id=\"gameTime\"><option value=\"0\">없음</option><option value=\"5\">5분</option><option value=\"10\">10분</option><option value=\"15\">15분</option></select></label>\n<button class=\"button primary\" type=\"submit\">대국 시작</button>\n</form>\n</dialog>\n";
 export function mountBoard(host,session) {
 const view = host.attachShadow({mode:'open'});
@@ -73,9 +75,37 @@ function rebuild(history){
 }
 function baseline(){return state.side==='b'?1:0;}
 function destinations(from){return legal(timeline.at(-1)).filter(m=>m.from===from).map(m=>m.to);}
+const engineCache=new WeakMap();
+function engineAt(game,sequence=timeline){
+  if(!engineCache.has(game)){
+    const index=sequence.indexOf(game);
+    engineCache.set(game,analyze(game,{previous:index<0?[]:sequence.slice(0,index)}));
+  }
+  return engineCache.get(game);
+}
+function analysisText(game){
+  const a=engineAt(game,frames());
+  return '엔진 · 백 기준 '+a.evaluation+' · 깊이 '+a.depth+(a.san.length?' · 예상 수순 '+a.san.join(' '):'');
+}
+function reviewAnalysis(ply){
+  if(!ply)return analysisText(frames()[0]);
+  const prior=engineAt(frames()[ply-1],frames());
+  return '착수 전 후보 '+(prior.san[0]||'—')+' · 실제 '+line()[ply-1][2]+' / '+analysisText(frames()[ply]);
+}
+function labelsAt(ply){
+  if(!ply)return [];
+  const entry=line()[ply-1];
+  if(entry[5])return entry[5];
+  const g=frames()[ply-1];
+  const m=legal(g).find(m=>m.from===entry[0]&&m.to===entry[1]&&(m.promotion||null)===(entry[3]||null));
+  return m?recognize(g,m,line().slice(0,ply).map(row=>row[2])):[];
+}
+function labelText(labels){return labels.slice(0,2).map(x=>x.term+' · '+x.why).join(' ');}
 function addMove(m){
   const g=timeline.at(-1), all=legal(g);
-  state.history.push([m.from,m.to,notation(g,m,all),m.promotion||null,describe(g,m)]);
+  const san=notation(g,m,all);
+  const labels=recognize(g,m,[...state.history.map(row=>row[2]),san]);
+  state.history.push([m.from,m.to,san,m.promotion||null,describe(g,m),labels]);
   const next=advance(g,m);timeline.push(next);
   const key=identity(next);
   state.result=outcome(next,legal(next),timeline.filter(item=>identity(item)===key).length);
@@ -198,8 +228,12 @@ function refresh() {
   const shownSide=inspectingOld()?state.previous.side:state.side;
   byId('opSide').textContent = colorName(shownSide === 'w' ? 'b' : 'w') + (state.mode === 'coach' ? ' · 코치' : ' · 상대');
   byId('mySide').textContent = colorName(shownSide);
-  byId('turn').textContent = state.review ? '복기 중' : state.result || '내 차례';
+  byId('turn').textContent = state.review ? '복기 중' : state.result || (theirTurn()?session.character+' 생각 중…':'내 차례');
   byId('chatStatus').textContent = state.review ? '복기 중' : preferences.hints ? '힌트 켜짐' : '힌트 꺼짐';
+  const waiting=theirTurn()&&!state.result&&!state.review;
+  byId('review').disabled=waiting;
+  byId('variation').disabled=waiting;
+  byId('hint').disabled=waiting;
   byId('hint').hidden = !preferences.hints && !state.review;
   byId('hint').textContent = state.hintLevel % 2 ? '판에서 보기' : '힌트';
   byId('undo').disabled = state.review || state.history.length <= baseline();
@@ -212,7 +246,7 @@ function refresh() {
     if(state.previous)byId('record').add(new Option('직전 판','old'));
     byId('record').value=inspectingOld()?'old':'live';
     byId('summary').textContent=[summary(),learnings(line(),shownSide)].filter(Boolean).join(' ');
-    byId('annotation').textContent=state.at+' / '+line().length+' · '+reference(state.at);
+    byId('annotation').textContent=state.at+' / '+line().length+' · '+reference(state.at)+' '+labelText(labelsAt(state.at))+' '+reviewAnalysis(state.at);
     byId('moveCard').classList.add('open');
   }
   renderBoard();
@@ -244,15 +278,23 @@ function renderMoves() {
     btn.disabled = !state.review || (first ? state.at === 0 : state.at === line().length);
   });
 }
-function currentTime() {
+let opponentTimer;
+const theirTurn = () => timeline.at(-1).turn !== state.side;
+const activeClock = () => theirTurn() ? 'op' : 'me';
+function currentTime(clock='me') {
   if (!state.times) return 0;
-  if (state.result) return state.times.me;
-  return Math.max(0,state.times.me - (performance.now() - state.turnStart));
+  if (state.result || clock!==activeClock()) return state.times[clock];
+  return Math.max(0,state.times[clock]-(performance.now()-state.turnStart));
+}
+function timeoutIfNeeded(){
+  const clock=activeClock();
+  if(!state.times || state.result || currentTime(clock)>0)return false;
+  state.times[clock]=0;
+  state.result=colorName(clock==='op'?state.side:(state.side==='w'?'b':'w'))+' 승 · 시간 종료';
+  clearTimeout(opponentTimer);persist();refresh();return true;
 }
 function renderClocks() {
-  if(ready && state.times && !state.result && currentTime()<=0){
-    state.times.me=0;state.result=colorName(state.side==='w'?'b':'w')+' 승 · 시간 종료';persist();refresh();return;
-  }
+  if(ready && timeoutIfNeeded())return;
   const hidden = !state.times || state.review;
   byId('myClock').hidden = byId('opClock').hidden = hidden;
   if (hidden) return;
@@ -261,9 +303,10 @@ function renderClocks() {
     return Math.floor(seconds/60) + ':' + String(seconds%60).padStart(2,'0');
   };
   byId('myClock').textContent = fmt(currentTime());
-  byId('opClock').textContent = fmt(state.times.op);
-  byId('myClock').classList.toggle('active',!state.result);
-  if (!currentTime() && !state.result) byId('turn').textContent = '시간 종료';
+  byId('opClock').textContent = fmt(currentTime('op'));
+  byId('myClock').classList.toggle('active',!state.result&&!theirTurn());
+  byId('opClock').classList.toggle('active',!state.result&&theirTurn());
+
 }
 function goToPly(ply) {
   variation=null;
@@ -275,7 +318,7 @@ function goToPly(ply) {
 }
 let gameGeneration = 0;
 function startGame(mode,side,timer) {
-  variation=null;stopPlayback();
+  clearTimeout(opponentTimer);variation=null;stopPlayback();
   if(ready && state.history.length){
     state.previous={history:state.history,side:state.side,result:state.result||'중단한 판'};
     previousTimeline=timeline;
@@ -287,7 +330,7 @@ function startGame(mode,side,timer) {
   state.side = side === 'random' ? (Math.random() < .5 ? 'w' : 'b') : side;
   state.timer = mode === 'free' ? timer : 0;
   state.history=[];timeline=[initialGame()];
-  if(state.side==='b')addMove(legal(timeline[0]).find(m=>m.from==='e2'&&m.to==='e4'));
+
   state.review = false;
   state.selected = state.arrow = state.priorTimes = null;
   state.hintLevel = 0;
@@ -296,9 +339,10 @@ function startGame(mode,side,timer) {
   byId('log').replaceChildren();
   byId('recentLog').replaceChildren();
   state.at=state.history.length;
-  characterLine(state.side === 'w' ? '백의 첫 수입니다. 먼저 두시죠.' : '저는 백으로 e4를 뒀습니다. 이제 흑 차례입니다.');
-  note('첫 수를 둘 폰이나 나이트를 선택하세요.');
+  characterLine(state.side === 'w' ? '먼저 두시죠.' : '그럼 제가 먼저 두겠습니다.');
+  note(state.side==='w'?'첫 수를 둘 폰이나 나이트를 선택하세요.':'');
   refresh();
+  if(ready)scheduleOpponent();
 }
 board.addEventListener('click', (event) => {
   const square = event.target.closest('[data-square]')?.dataset.square;
@@ -331,37 +375,57 @@ board.addEventListener('click', (event) => {
     state.selected=state.arrow=null;state.hintLevel=0;
     if(state.times){state.clockHistory.push({...state.times});state.times.me=currentTime();}
     addMove(mine);
-    let fact=state.history.at(-1)[4];
-    if(!state.result){
-      const start=performance.now(), next=timeline.at(-1);
-      const reply=choose(next,legal(next));
-      if(state.times)state.times.op=Math.max(0,state.times.op-(performance.now()-start));
-      if(state.times && !state.times.op)state.result=colorName(state.side)+' 승 · 시간 종료';
-      else {addMove(reply);fact+=' 상대 응수 '+state.history.at(-1)[2]+'. '+state.history.at(-1)[4];}
-    }
     state.turnStart=performance.now();
-    const text=state.result || (state.mode==='coach'&&preferences.hints?fact:'제 수는 '+state.history.at(-1)[2]+'입니다.');
-    state.at=state.history.length;characterLine(text);
-    note(state.result||'내 차례입니다.');
+    state.at=state.history.length;
+    const userLabel=labelText(state.history.at(-1)[5]);
+    note(state.result||(preferences.hints&&userLabel?'방금 둔 수 · '+userLabel:''));
+    if(state.result)characterLine(state.result);
+    else scheduleOpponent();
   }else{
     state.selected=state.selected===square?null:moves.some(m=>m.from===square)?square:null;
     note(state.selected?'표시된 칸을 선택하세요.':check(game)?'체크를 해소할 수를 두세요.':'내 기물을 선택하세요.');
   }
   refresh();
 });
+// A separate task gives the board a full, observable player turn before search starts.
+function scheduleOpponent(){
+  clearTimeout(opponentTimer);
+  if(closed||state.result||!theirTurn())return;
+  opponentTimer=setTimeout(()=>{
+    if(closed||state.result||!theirTurn()||timeoutIfNeeded())return;
+    const game=timeline.at(-1), previous=state.history.at(-1);
+    const reply=state.history.length?engineAt(game).move:legal(game).find(m=>m.from==='e2'&&m.to==='e4');
+    if(timeoutIfNeeded()||!reply)return;
+    if(state.times)state.times.op=currentTime('op');
+    addMove(reply);
+    state.at=state.history.length;
+    state.turnStart=performance.now();
+    refresh();
+    const move=state.history.at(-1);
+    note(state.result||session.character+' · '+reply.from+' → '+reply.to+'   '+move[2]);
+    persist();
+    const term=previous?.[5]?.[0];
+    if(sending)return;
+    if(state.result)characterLine(state.result);
+    else if(preferences.hints&&term)characterLine('방금 두신 수는 '+term.term+'입니다. '+term.why);
+    else if(preferences.hints&&state.mode==='coach' && (reply.capture||move[2].includes('+')))characterLine(move[4]);
+  },1200);
+}
 function hintLine(showArrow){
   const game=variation||frames()[state.review?state.at:state.history.length], moves=legal(game);
   if(!moves.length)return '종료된 국면입니다. '+reference(state.at);
-  const m=choose(game,moves,()=>0);
+  const m=engineAt(game,frames()).move;
+  if(!m)return reference(state.at);
   if(showArrow)state.arrow=[m.from,m.to];
-  return showArrow?'가능한 수 '+notation(game,m,moves)+'. '+describe(game,m):check(game)?'체크입니다. 킹을 피하거나 공격을 막거나 공격 기물을 잡을 수 있는지 보세요.':names[m.p]+'이 있는 '+m.from+' 칸을 보세요. '+(m.capture?'잡을 수 있는 상대 기물이 있습니다.':'어느 칸으로 이동할 수 있을까요?');
+  return showArrow?'엔진 후보수 '+notation(game,m,moves)+'. '+describe(game,m):check(game)?'체크입니다. 킹을 피하거나 공격을 막거나 공격 기물을 잡을 수 있는지 보세요.':names[m.p]+'이 있는 '+m.from+' 칸을 보세요. '+(m.capture?'잡을 수 있는 상대 기물이 있습니다.':'어느 칸으로 이동할 수 있을까요?');
 }
 function info(){
   if(!state.review&&!preferences.hints)return {hints:false};
   if(variation)return {hints:true,variation:true,board:variation.board,turn:variation.turn,legal:legal(variation).map(m=>m.from+m.to)};
-  return {hints:true,board:positions(state.at),moves:line().slice(0,state.at).map(m=>m[2]),last:reference(state.at),legal:legal(frames()[state.at]).map(m=>m.from+m.to+(m.promotion||'')),summary:state.review?summary():undefined};
+  return {hints:true,board:positions(state.at),moves:line().slice(0,state.at).map(m=>m[2]),last:reference(state.at),terms:labelsAt(state.at),engine:analysisText(frames()[state.at]),legal:legal(frames()[state.at]).map(m=>m.from+m.to+(m.promotion||'')),summary:state.review?summary():undefined};
 }
 function characterLine(text){
+  if(sending)return;
   if(!session.profile){talk('루퍼트',text);return;}
   const ticket=++autoTicket,generation=gameGeneration;
   const pos=info();
@@ -376,7 +440,7 @@ byId('hint').onclick = () => {
   refresh();
 };
 byId('undo').onclick = () => {
-  variation=null;autoTicket++;gameGeneration++;
+  clearTimeout(opponentTimer);variation=null;autoTicket++;gameGeneration++;
   const count=timeline.at(-1).turn===state.side?2:1;
   state.history.splice(Math.max(baseline(),state.history.length-count));
   timeline=rebuild(state.history);state.result='';
@@ -413,14 +477,14 @@ byId('compose').onsubmit = async (event) => {
   message.value = '';
   if (session.profile) {
     const generation = gameGeneration;
-    const expectedView = [state.review,state.at,state.archived].join();
+    const expectedView = [state.review,state.archived,state.review?state.at:'live'].join();
     const button = byId('compose').querySelector('button');
     sending = button.disabled = true;
     button.textContent = '응답 중';
     try {
       const ticket=++autoTicket;
       const reply = await session.reply(transcript,info());
-      if (!closed && expectedView===[state.review,state.at,state.archived].join() && ticket===autoTicket && generation === gameGeneration) talk('루퍼트',reply);
+      if (!closed && expectedView===[state.review,state.archived,state.review?state.at:'live'].join() && ticket===autoTicket && generation === gameGeneration) talk('루퍼트',reply);
     } catch {
       if (generation === gameGeneration) note('응답 실패 · 확장 설정의 연결 프로필을 확인해 주세요.');
     } finally {
@@ -431,14 +495,19 @@ byId('compose').onsubmit = async (event) => {
     return;
   }
   const asksAboutBoard = /힌트|어디|어떻게|왜.*(?:수|뒀|옮|잡)|추천|다음\s*수|놓쳤|뭐부터|위협|좋은\s*수|망했|내가\s*나라면|네가\s*나라면|hint|move/i.test(input);
-  const asksRules = /캐슬링|앙파상|승격|체크메이트|포크|디스커버드/.test(input);
-  let answer = '말씀은 듣고 있습니다. 판도 함께 보고 있고요.';
+  const termDefinition=definition(input);
+  let answer = /고마|감사/.test(input)?'천만에요.':/ㅋㅋ|ㅎㅎ/.test(input)?'그 표정은 무슨 뜻인지 궁금하군요.':/긴장|떨려/.test(input)?'천천히 두세요. 여기서 기다릴게요.':/안녕|반가/.test(input)?'반갑습니다. 한 판 같이 두죠.':'듣고 있어요. 조금 더 얘기해 주시겠어요?';
   if (asksAboutBoard) {
     answer = state.review || preferences.hints ? hintLine(/보여|어디|표시/.test(input)) : '대국 중에 힌트는 드리지 않기로 했습니다. 문장을 바꾸셔도요.';
-  } else if (asksRules) {
-    answer = /포크/.test(input) ? '포크는 한 기물이 상대 기물 둘 이상을 동시에 위협하는 전술입니다.'
-      : /디스커버드/.test(input) ? '디스커버드 어택은 앞의 기물이 비켜나면서 뒤의 기물에 공격길을 열어주는 전술입니다.'
-      : '이 대화 예시에서는 포크나 디스커버드 어택에 대해 물어볼 수 있습니다.';
+  } else if(termDefinition){
+    answer=termDefinition;
+  } else if(/무슨|용어|뭐라고|뭐야|방금|방식|전술|오프닝/.test(input)){
+    if(!state.review&&!preferences.hints)answer='지금 판에 대한 해설은 복기 때 말씀드리겠습니다.';
+    else{
+      let ply=state.at;
+      if(!state.review && ply && frames()[ply-1].turn!==state.side)ply--;
+      answer=labelText(labelsAt(ply))||reference(ply);
+    }
   }
   talk('루퍼트',answer);
   message.value = '';
@@ -466,6 +535,7 @@ view.querySelectorAll('[data-piece-choice]').forEach((btn) => btn.onclick = () =
 });
 byId('hintToggle').onchange = (event) => {
   variation=null;autoTicket++;preferences.hints = event.target.checked;
+  if(!preferences.hints)note('힌트 꺼짐');
   state.arrow = null;
   state.hintLevel = 0;
   if (!preferences.hints && !state.review) talk('루퍼트','좋습니다. 이제부터 대국 중 힌트는 드리지 않겠습니다.');
@@ -519,17 +589,18 @@ if (saved?.version === 1) {
   timeline=rebuild(state.history);
   if(state.previous)previousTimeline=rebuild(state.previous.history);
   state.at=Math.min(state.at,line().length);state.selected=null;
-  state.turnStart = performance.now() - Math.max(0,Date.now()-saved.stamp);
+  state.turnStart = performance.now() - (theirTurn()?0:Math.max(0,Date.now()-saved.stamp));
   for (const [speaker,text] of saved.transcript) talk(speaker,text);
 } else {
   startGame('coach','w',0);
 }
 applyPreferences();
 ready = true;
+scheduleOpponent();
 function persist() {
   if (!ready || closed) return;
   const snapshot = {...state};
-  if (state.times) snapshot.times = {...state.times,me:currentTime()};
+  if (state.times) snapshot.times = {me:currentTime('me'),op:currentTime('op')};
   session.save({version:1,state:snapshot,stamp:Date.now(),transcript});
 }
 view.addEventListener('click',persist);
@@ -537,6 +608,6 @@ view.addEventListener('submit',persist);
 view.addEventListener('change',persist);
 persist();
 const timer = setInterval(renderClocks,250);
-return () => { closed=true;autoTicket++;stopPlayback();clearInterval(timer); mobile.removeEventListener('change',syncPanels); };
+return () => { closed=true;clearTimeout(opponentTimer);autoTicket++;stopPlayback();clearInterval(timer); mobile.removeEventListener('change',syncPanels); };
 
 }

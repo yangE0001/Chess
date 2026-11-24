@@ -1,4 +1,4 @@
-const boardModule = new URL('./board.js?v=0.3.0', import.meta.url);
+const boardModule = new URL('./board.js?v=0.4.1', import.meta.url);
 const key = 'tavernChessV1';
 const context = () => SillyTavern.getContext();
 const launch = document.createElement('button');
@@ -146,7 +146,7 @@ async function openBoard() {
             const character = ctx.characters?.[ctx.characterId];
             const messages = [{role:'system',content:[
                 '한국어로 짧게 답하는 체스 대국 상대입니다.',
-                '캐릭터 카드와 최근 장면의 말투와 관계를 유지하세요. 기물 이동은 확장이 담당합니다. 제공된 사실만 설명하고 평가점수나 강제 수순을 만들지 마세요.',
+                '캐릭터 카드와 최근 장면의 말투와 관계를 유지하세요. 기물 이동은 확장이 담당합니다. 상대가 수다를 떨면 그 말의 감정이나 농담에 먼저 반응하세요. 체스를 묻지 않았으면 판 설명을 덧붙일 필요가 없습니다. 코칭을 요청하거나 전술이 생긴 순간에는 실제 기물을 짚어 용어를 대화에 자연스럽게 섞으세요. 같은 첫마디, 상투적인 칭찬, 기보 낭독을 피하세요. 자동 대사는 보통 한두 문장, 설명을 청하면 필요한 만큼 답하세요. 제공된 엔진 수치는 백 기준이며 예상 수순입니다. 없는 전술이나 평가를 만들지 마세요.',
                 ctx.name2,character?.description,character?.personality,character?.scenario,character?.data?.mes_example?.slice(0,900),
                 '최근 채팅 장면: '+JSON.stringify((ctx.chat||[]).filter(m=>!m.is_system).slice(-6).map(m=>[m.name,String(m.mes||'').slice(0,500)])),
                 position.hints?'복기 또는 힌트 허용.':'힌트 OFF. 수다와 규칙 설명은 허용. 현재 판 조언이나 유불리 질문은 캐릭터답게 거절하세요.',
@@ -155,7 +155,7 @@ async function openBoard() {
             for (const [speaker,content] of history.slice(-20)) {
                 messages.push({role:speaker === '유니' ? 'user' : 'assistant',content});
             }
-            if(cue)messages.push({role:'user',content:'다음 확인된 상황을 캐릭터의 짧은 대사로 표현하세요: '+cue});
+            if(cue)messages.push({role:'user',content:'둘이 바로 앞에서 체스를 두는 장면입니다. 다음 사실 중 한 가지에 반응해 한마디 하세요. 좌표는 설명에 꼭 필요할 때만 쓰세요: '+cue});
             if(profile==='current'){
                 const output=await ctx.generateQuietPrompt({quietPrompt:JSON.stringify(messages),quietToLoud:false});
                 if(!output?.trim())throw new Error('empty reply');
