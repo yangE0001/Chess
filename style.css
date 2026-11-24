@@ -1,2 +1,7 @@
 #tavernChessLaunch{position:fixed;bottom:76px;right:12px;z-index:1000;padding:8px 13px;border:0;border-radius:20px;background:#f1c85b;color:#30220d;cursor:pointer;font-weight:700}
 #tavernChessFrame{position:fixed;inset:0;width:100%;height:100%;border:0;background:#f5f2eb;z-index:99999}
+#tavernChessSettings{padding:8px}
+#tavernChessSettings summary{cursor:pointer;font-weight:700}
+#tavernChessSettings label{display:block;margin:9px 0}
+#tavernChessSettings .erase{width:auto}
+#tavernChessLaunch[hidden]{display:none}

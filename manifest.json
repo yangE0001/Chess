@@ -1,1 +1,10 @@
-{"display_name":"태번 체스","loading_order":10,"js":"index.js","css":"style.css","author":"Tavern Chess","version":"0.1.0","requires":[],"optional":[]}
+{
+  "display_name": "태번 체스",
+  "loading_order": 10,
+  "js": "index.js",
+  "css": "style.css",
+  "author": "Tavern Chess",
+  "version": "0.2.0",
+  "requires": [],
+  "optional": []
+}

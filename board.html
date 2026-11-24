@@ -418,7 +418,9 @@ function goToPly(ply) {
   state.hintLevel = 0;
   refresh();
 }
+let gameGeneration = 0;
 function startGame(mode,side,timer) {
+  gameGeneration++;
   transcript.length = 0;
   state.mode = mode;
   state.side = side === 'random' ? (Math.random() < .5 ? 'w' : 'b') : side;
@@ -507,12 +509,31 @@ byId('review').onclick = () => {
 document.querySelectorAll('[data-step]').forEach((btn) => {
   btn.onclick = () => goToPly({first:0,prev:state.at-1,next:state.at+1,last:state.history.length}[btn.dataset.step]);
 });
-byId('compose').onsubmit = (event) => {
+let sending = false;
+byId('compose').onsubmit = async (event) => {
   event.preventDefault();
   const message = byId('message');
   const input = message.value.trim();
-  if (!input) return;
+  if (!input || sending) return;
   talk('유니',input);
+  message.value = '';
+  if (session.profile && (state.review || preferences.hints)) {
+    const generation = gameGeneration;
+    const button = byId('compose').querySelector('button');
+    sending = button.disabled = true;
+    button.textContent = '응답 중';
+    try {
+      const reply = await session.reply(transcript,positions(state.at));
+      if (generation === gameGeneration && (state.review || preferences.hints)) talk('루퍼트',reply);
+    } catch {
+      if (generation === gameGeneration) note('응답 실패 · 확장 설정의 연결 프로필을 확인해 주세요.');
+    } finally {
+      sending = button.disabled = false;
+      button.textContent = '보내기';
+      persist();
+    }
+    return;
+  }
   const asksAboutBoard = /힌트|어디|어떻게|왜.*(?:수|뒀|옮|잡)|추천|다음\s*수|놓쳤|뭐부터|위협|좋은\s*수|망했|내가\s*나라면|네가\s*나라면|hint|move/i.test(input);
   const asksRules = /캐슬링|앙파상|승격|체크메이트|포크|디스커버드/.test(input);
   let answer = '말씀은 듣고 있습니다. 판도 함께 보고 있고요.';
