@@ -1,10 +1,10 @@
 {
   "display_name": "태번 체스",
   "loading_order": 10,
-  "js": "index-0.6.4.js",
+  "js": "index-0.6.6.js",
   "css": "style.css",
   "author": "Tavern Chess",
-  "version": "0.6.4",
+  "version": "0.6.6",
   "requires": [],
   "optional": []
 }
