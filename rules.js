@@ -29,7 +29,26 @@ export function reaches(g,from,to) {
   while(square!==to){if(g.board[square])return false;square=offset(square,Math.sign(dx),Math.sign(dy));}
   return true;
 }
-function attacked(g,to,side){return Object.keys(g.board).some(s=>g.board[s][0]===side && reaches(g,s,to));}
+function attacked(g,to,side){
+  const board=g.board;
+  for(const dx of [-1,1]){
+    if(board[offset(to,dx,side==='w'?-1:1)]===side+'p')return true;
+  }
+  for(const [dx,dy] of knight){
+    if(board[offset(to,dx,dy)]===side+'n')return true;
+  }
+  for(const [dx,dy] of directions){
+    const first=offset(to,dx,dy);
+    if(board[first]===side+'k')return true;
+    for(let square=first;square;square=offset(square,dx,dy)){
+      const piece=board[square];
+      if(!piece)continue;
+      if(piece[0]===side && (piece[1]==='q'||piece[1]===(dx&&dy?'b':'r')))return true;
+      break;
+    }
+  }
+  return false;
+}
 export function check(g,side=g.turn){return attacked(g,Object.keys(g.board).find(s=>g.board[s]===side+'k'),other(side));}
 function pseudo(g) {
   const moves=[],side=g.turn,enemy=other(side);
@@ -84,8 +103,8 @@ export function notation(g,m,all=legal(g)){
   const dis=!rivals.length?'':rivals.every(k=>k.from[0]!==m.from[0])?m.from[0]:rivals.every(k=>k.from[1]!==m.from[1])?m.from[1]:m.from;
   return (m.p==='p'?(m.capture?m.from[0]:''):m.p.toUpperCase()+dis)+(m.capture?'x':'')+m.to+(m.promotion?'='+m.promotion.toUpperCase():'')+suffix;
 }
-export function identity(g){
-  return Object.keys(g.board).sort().map(s=>s+g.board[s]).join('')+g.turn+g.rights+(g.ep&&legal(g).some(m=>m.epCapture)?g.ep:'');
+export function identity(g,moves){
+  return Object.keys(g.board).sort().map(s=>s+g.board[s]).join('')+g.turn+g.rights+(g.ep&&(moves||legal(g)).some(m=>m.epCapture)?g.ep:'');
 }
 export function outcome(g,all,repeated){
   if(!all.length)return check(g)?(g.turn==='w'?'흑':'백')+' 승 · 체크메이트':'무승부 · 스테일메이트';

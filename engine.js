@@ -51,8 +51,9 @@ export function analyze(game,{budget=220,depthLimit=4,previous=[],tactics=2,nois
 
   function search(g,depth,alpha,beta,ply){
     if((++nodes&15)===0 && performance.now()>deadline && iteration>1)throw timeout;
-    const key=identity(g), repeats=(counts.get(key)||0)+1;
-    const moves=legal(g),result=outcome(g,moves,repeats);
+    const moves=legal(g);
+    const key=identity(g,moves), repeats=(counts.get(key)||0)+1;
+    const result=outcome(g,moves,repeats);
     if(result)return {score:!moves.length&&check(g)?-mate+ply:0,line:[]};
     const inCheck=check(g);
     let candidates=moves,stand=-Infinity;
