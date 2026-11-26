@@ -3,8 +3,8 @@ import {advance,check,identity,legal,notation,outcome} from './rules.js';
 const material={p:100,n:320,b:335,r:500,q:920,k:0};
 const mate=30000;
 export const levels={
-  starter:{label:'입문자',budget:65,depthLimit:1,tactics:0,noise:250},
-  beginner:{label:'초심자',budget:130,depthLimit:2,tactics:0,noise:95},
+  starter:{label:'입문자',budget:140,depthLimit:2,tactics:1,noise:0},
+  beginner:{label:'초심자',budget:240,depthLimit:3,tactics:1,noise:0},
   intermediate:{label:'중수',budget:340,depthLimit:4,tactics:1,noise:12},
   advanced:{label:'고수',budget:1050,depthLimit:6,tactics:2,noise:0},
   grandmaster:{label:'그랜드마스터급',budget:3400,depthLimit:9,tactics:4,noise:0}
@@ -94,5 +94,5 @@ export function analyze(game,{budget=220,depthLimit=4,previous=[],tactics=2,nois
   const san=best.line.map(m=>{const label=notation(g,m);g=advance(g,m);return label;});
   const whiteScore=game.turn==='w'?best.score:-best.score;
   const evaluation=Math.abs(whiteScore)>mate-100?(whiteScore>0?'백':'흑')+' 메이트 수순':(whiteScore>=0?'+':'')+(whiteScore/100).toFixed(2);
-  return {move:best.line[0],san,depth:completed,evaluation};
+  return {move:best.line[0],san,depth:completed,evaluation,whiteScore};
 }

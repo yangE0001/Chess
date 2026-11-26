@@ -54,3 +54,17 @@ export function recognize(g,m,history){
   if(!labels.length && m.p==='p'&&['d4','e4','d5','e5'].includes(m.to))add('중앙 점유',m.to+'에 폰을 놓아 중앙에 자리를 잡았습니다.');
   return labels;
 }
+
+export function studyPhase(game,history){
+  const moves=history.map(row=>row[2]).join(' ');
+  const opening=book.find(([line])=>moves===line || moves.startsWith(line+' '));
+  const pieces=Object.values(game.board);
+  const heavy=pieces.reduce((sum,code)=>sum+({q:9,r:5,b:3,n:3}[code[1]]||0),0);
+  const starts={b1:'wn',g1:'wn',c1:'wb',f1:'wb',b8:'bn',g8:'bn',c8:'bb',f8:'bb'};
+  const developed=Object.entries(starts).filter(([s,code])=>game.board[s]!==code).length;
+  const phase=heavy<=20?'엔드게임':developed>=6 || (developed>=4 && history.length>=20) || heavy<=42?'미들게임':'오프닝';
+  const plan=phase==='엔드게임'?'기물이 줄면 킹도 싸움에 참여할 여지가 생깁니다. 남은 폰이 승격할 길과 상대 킹의 거리를 함께 살펴보세요.':
+    phase==='미들게임'?'기물이 전개되거나 교환되면서 양쪽의 계획이 드러나는 단계입니다. 폰이 맞부딪친 곳과 기물이 함께 공격할 수 있는 곳을 살펴보세요.':
+    '오프닝에서는 중앙에 영향력을 두고 뒷줄의 기물을 꺼내며 킹이 안전하게 자리 잡을 준비를 합니다.';
+  return {phase,opening:opening?.[1],meaning:opening?.[2],plan};
+}
